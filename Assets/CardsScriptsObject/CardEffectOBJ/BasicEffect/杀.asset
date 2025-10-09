@@ -9,9 +9,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e932b7618b1160347b400c53dd25df7e, type: 3}
-  m_Name: "\u65E0\u4E2D\u751F\u6709"
+  m_Script: {fileID: 11500000, guid: 3ff49cc3195e1054cbc9c890657f5d1f, type: 3}
+  m_Name: "\u6740"
   m_EditorClassIdentifier: 
-  name: "\u65E0\u4E2D\u751F\u6709"
-  Image: {fileID: 0}
-  card: {fileID: 11400000, guid: 75b42f1e3696b5745b6f040ed6bec1c9, type: 2}

@@ -7,4 +7,5 @@ public class StrategyCardOBJ : ScriptableObject
 {
     public string name;
     public Sprite Image;
+    public CardsEffect card;
 }

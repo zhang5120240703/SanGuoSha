@@ -4,12 +4,5 @@ using UnityEngine;
 
 public class Cards : MonoBehaviour
 {
-    public virtual void Effect()
-    {
-
-    }
-    public virtual void CardUsed()
-    {
-
-    }
+    
 }
