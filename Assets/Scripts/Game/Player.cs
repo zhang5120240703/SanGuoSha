@@ -1,6 +1,7 @@
 using Mirror;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -11,22 +12,27 @@ public class Player : NetworkBehaviour
     private int PlayerID;
 
     //玩家身份
-    [SyncVar(hook = nameof(OnIdentityChanged))]
-    private Identity identity;
-
-    [SyncVar(hook = nameof(OnDeathChanged))]
-    private bool isDead = false;
+    [SyncVar(hook = nameof(OnIdentityChanged))] private Identity identity;
+    [SyncVar(hook = nameof(OnIdentitySync))] private string IdentityName;
+    [SyncVar(hook = nameof(OnDeathChanged))] private bool isDead = false;
+    [SyncVar(hook = nameof(OnHealthChanged))] private int currentHealth;
+    [SyncVar(hook = nameof(OnCardCountChanged))] private int currentCardCount;
 
     private GeneralCardOBJ General;
 
-    [SyncVar(hook = nameof(OnHealthChanged))]
-    private int currentHealth;
-
-    [SyncVar(hook = nameof(OnCardCountChanged))]
-    private int currentDeckCount;
-
     [SyncVar]
     private int AttackRange = 1;
+
+    [Server]
+    public void SetPlayerID(int id) => PlayerID = id;
+    public int GetPlayerID() => PlayerID;
+
+    [Server]
+    public void Init(Identity iden)
+    {
+        this.identity = iden;
+        IdentityName = identity.identity.ToString();
+    }
 
     private void Update()
     {
@@ -52,15 +58,24 @@ public class Player : NetworkBehaviour
         }
     }
 
-    #region 数据接口区域
-    public void SetPlayerID(int id)
+    public void InitPlayer(int id)
     {
+        if(!isServer)
+        {
+            return;
+        }
         PlayerID = id;
+        if(General!=null)
+        {
+            currentHealth = General.HP;
+        }
+        else
+        {
+            Debug.LogError("玩家未设置武将");
+        }
     }
-    public int GetPlayerID()
-    {
-        return PlayerID;
-    }
+
+    #region 数据接口区域
     public void SetDead(bool dead)
     {
         isDead = dead;
@@ -83,14 +98,14 @@ public class Player : NetworkBehaviour
         General = general;
     }
 
-    public void UpdateCurrentDeckCount(int count)
+    public void UpdateCurrentCardCount(int count)
     {
-        currentDeckCount = count;
+        currentCardCount = count;
     }
 
-    public int GetCurrentDeckCount()
+    public int GetCurrentCardCount()
     {
-        return currentDeckCount;
+        return currentCardCount;
     }
 
     public void SetAttackRange(int Range)
@@ -101,15 +116,15 @@ public class Player : NetworkBehaviour
 
     #region 网络同步钩子函数
 
-    private void OnIdentityChanged(Identity Identity)
+    private void OnIdentityChanged(Identity oldIdentity,Identity newIdentity)
     {
-        identity = Identity;
+        identity = newIdentity;
         Debug.Log($"玩家{PlayerID}的身份是：{identity.identity}");
     }
 
-    private void OnHealthChanged(int Damage)
+    private void OnHealthChanged(int oldHealth,int newHealth)
     {
-        currentHealth-=Damage;
+        currentHealth = newHealth;
         Debug.Log($"玩家{PlayerID}的当前血量是：{currentHealth}");
         if(currentHealth<=0)
         {
@@ -118,20 +133,44 @@ public class Player : NetworkBehaviour
         }
     }
 
-    private void OnCardCountChanged(int Count)
+    private void OnCardCountChanged(int oldCount,int newCount)
     {
-        currentDeckCount += Count;
-        Debug.Log($"玩家{PlayerID}的当前手牌数是：{currentDeckCount}");
+        currentCardCount = newCount;
+        Debug.Log($"玩家{PlayerID}的当前手牌数是：{currentCardCount}");
 
     }
 
-    private void OnDeathChanged(bool Death)
+    private void OnDeathChanged(bool oldDeath,bool newDeath)
     {
-        isDead = Death;
+        isDead = newDeath;
         if (isDead)
         {
             Debug.Log($"玩家{PlayerID}阵亡");
         }
     }
+
+    private void OnIdentitySync(string oldname,string newname)
+    {
+        IdentityName = newname;
+        identity = Resources.Load<Identity>($"Identity/{newname}");
+        Debug.Log($"玩家{PlayerID}身份为{IdentityName}");
+    }
+
+    [Server]
+    public void TakeDamage(int damage)
+    {
+        if(isDead) return;
+        currentHealth = Mathf.Max(currentHealth - damage, 0);
+        if(currentHealth == 0)
+        {
+            isDead = true;
+            Debug.Log($"玩家{PlayerID}阵亡");
+        }
+    }
+
+    [Command]
+    public void CmdTakeDamage(int damage) => TakeDamage(damage);
     #endregion
+
+
 }
